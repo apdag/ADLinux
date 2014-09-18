@@ -1,5 +1,33 @@
 #!/bin/bash
 
+
+license ()
+{
+	cat <<-EOF >&2 
+	The MIT License (MIT)
+	
+	Copyright (c) 2014 Doug McNish
+	
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+	
+	The above copyright notice and this permission notice shall be included in
+	all copies or substantial portions of the Software.
+	
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+	THE SOFTWARE.
+	EOF
+}
+
 upcase () 
 {
 	echo -n $(echo $1 | tr '[a-z]' '[A-Z]')
@@ -155,6 +183,7 @@ configure_ntp ()
 	echo
 	echo "STRONGLY consider adding the following to"
 	echo "/etc/ntp.conf"
+	echo
 	for x in $(host -t srv _kerberos._tcp.$(dnsdomainname)| awk '{print $8}');
 	do
 		echo "server ${x%?}"
@@ -171,7 +200,7 @@ configure_kerberos ()
 	echo "It looks like ${kdc} is answering requests." 
 	echo 
 	local kdc_answer
-	read -p "Do you want to use ${kdc} to serve Kerberos logins? [Y/n]: " kdc_answer
+	read -p "Do you want to use ${kdc} to serve logins? [Y/n]: " kdc_answer
 	
 	case $kdc_answer in
 		[yY])
@@ -284,9 +313,9 @@ join_domain ()
 	echo
 	echo "JOIN:"
 	echo 
-	echo "Here goes. Here's what should happen." 
-	echo "You are trying to join the host $(hostname -f)" 
-	echo "to the $(dnsdomainname | tr '[a-z]' '[A-Z]') domain." 
+	echo
+	echo "You are trying to join the host $(hostname -s)" 
+	echo "to the $(realm) domain." 
 	echo
 	local user_confirmed
 	read -p "Everything look right? [y/N]: " user_confirmed
@@ -311,40 +340,29 @@ join_domain ()
 
 }
 
-warn_jerks () 
+warn_msg () 
 {
 	echo
 	echo
 	echo "WARNING:"
-	echo "This script will overwrite several system files." 
-	echo "That's kind-of the point, but you should back up these"
-	echo "files first:"
-	echo "    /etc/krb5.conf"
-	echo "    /etc/pam.d/system-auth"
-	echo "    /etc/samba/smb.conf"
-	echo "    /etc/nsswitch.conf"
-	echo "    /etc/hosts" 
+	echo "This script will overwrite several system files."
+	echo "Originals will be stored in *.adjoinsave"
+	echo "    /etc/krb5.conf{,adjoinsave}"
+	echo "    /etc/pam.d/system-auth-ac{,adjoinsave}"
+	echo "    /etc/samba/smb.conf{,adjoinsave}"
+	echo "    /etc/nsswitch.conf{,adjoinsave}"
+	echo "    /etc/hosts{,adjoinsave}" 
+	echo
+	echo "This is designed to run on CentOS 6.5. It will probably"
+	echo "work on RHEL, too, but has not been tested." 
+	echo "Pull requests for other distros are welcome."
 	echo
 	echo "Back things up first. You have been warned."
 	echo 
-	echo "This is designed to run on CentOS 6.5. It will probably"
-	echo "work on RHEL, too, but has not been tested." 
+	echo "$(license)"
 	echo
-	echo "You're on your own if you don't use yum for package"
-	echo "management. It's not hard. Good luck."
-	echo 
-	echo "Your hostname is $(hostname)."
-	echo "That is how it will identify itself to AD and how"
-	echo "other users will view it."
-	echo 
-	echo "You will be given the opportunity to change the"
-	echo "hostname." 
-	echo
-	echo "Do you understand it's your fault if this script"
-	echo "destroys your system and you don't have backups?"
-	echo 
-
-	read -p "I understand it's my fault if this breaks everything [y/N]: " disclaimed
+	echo "I understand this could break my system and have taken" 
+	read -p "appropriate precautions [y/N]: " disclaimed
 
 
 	case $disclaimed in
@@ -355,7 +373,7 @@ warn_jerks ()
 			echo
 			;;
 		   *)
-			echo "That's a no, then." 
+			echo "Exiting on user request."
 			exit 1
 			;;
 	esac
@@ -368,9 +386,6 @@ configure_hostname ()
 	echo
 	echo "Let's set our hostname. It should be the FQDN"
 	echo "[host.addomain.tld] you want your machine to use"
-	echo
-	echo "Take care to set the host and domain name"
-	echo "correctly. Weird Things will happen if not."
 	echo
 	read -p "Fully qualified hostname to use [$(hostname)]: " userinput
 
@@ -391,7 +406,7 @@ script_main ()
 
 	case $arg in
 		--really)
-			warn_jerks
+			warn_msg
 			configure_hostname
 			install_packages
 			configure_samba 
