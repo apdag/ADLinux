@@ -203,14 +203,14 @@ configure_kerberos ()
 	read -p "Do you want to use ${kdc} to serve logins? [Y/n]: " kdc_answer
 	
 	case $kdc_answer in
-		[yY])
-			admin_server=$kdc
-			kdc_server=$kdc
-			;;
-	  	*)
+	  	[nN])
 			read -p "kdc? [${kdc}]: " kdc
 			read -p "admin server [${kdc}]: " admin_server
 			read -p "kdc_server [${kdc}]: " kdc_server
+			;;
+		  *)
+			admin_server=$kdc
+			kdc_server=$kdc
 			;;
 	esac 
 
